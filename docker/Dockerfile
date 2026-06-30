@@ -11,6 +11,9 @@ ENV PATH="/root/.cargo/bin:/usr/local/go/bin:${PATH}"
 # 让 cargo 和 tauri build 使用同一个 target 目录，便于复用缓存。
 ENV CARGO_TARGET_DIR=/cockpit-tools/src/src-tauri/target
 
+# build.rs 会编译 Go sidecar；我们在 Dockerfile 里单独编，避免 cargo 子进程里出错信息被吞。
+ENV COCKPIT_SKIP_CLIPROXY_BUILD=1
+
 # 网络不稳定时提高成功率。
 ENV CARGO_NET_RETRY=20
 ENV CARGO_HTTP_TIMEOUT=300
@@ -102,8 +105,24 @@ COPY cockpit-tools/src/assets ./src/assets
 RUN set -eux; \
     cargo fetch --locked
 
-# 预编译 Rust 依赖和 Go sidecar。
-# 这一步很慢，但缓存命中后，前端改动不会导致它重跑。
+# 单独编译 Go sidecar，错误信息不会被 cargo 子进程吞掉。
+RUN set -eux; \
+    rust_target=""; \
+    goarch=""; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) rust_target="x86_64-unknown-linux-gnu"; goarch="amd64" ;; \
+      arm64) rust_target="aarch64-unknown-linux-gnu"; goarch="arm64" ;; \
+      *) echo "unsupported arch: $arch" >&2; exit 1 ;; \
+    esac; \
+    cd sidecars/cockpit-cliproxy; \
+    mkdir -p bin; \
+    GOOS=linux GOARCH="${goarch}" CGO_ENABLED=0 \
+      go build -trimpath -ldflags "-s -w" -o "bin/cockpit-cliproxy-${rust_target}" .; \
+    ls -la bin/
+
+# 预编译 Rust 依赖。
+# 前面已单独编译 Go sidecar，cargo 会跳过 sidecar 构建（COCKPIT_SKIP_CLIPROXY_BUILD=1）。
 RUN set -eux; \
     cargo build --release --locked --manifest-path src-tauri/Cargo.toml
 

@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/root/.cargo/bin:/usr/local/go/bin:${PATH}"
 
 # 让 cargo 和 tauri build 使用同一个 target 目录，便于复用缓存。
-ENV CARGO_TARGET_DIR=/src/src-tauri/target
+ENV CARGO_TARGET_DIR=/cockpit-tools/src/src-tauri/target
 
 # 网络不稳定时提高成功率。
 ENV CARGO_NET_RETRY=20
@@ -72,7 +72,7 @@ FROM base AS npm-deps
 
 WORKDIR /cockpit-tools/src
 
-COPY package.json package-lock.json* ./
+COPY cockpit-tools/package.json cockpit-tools/package-lock.json* ./
 
 RUN npm ci
 
@@ -85,18 +85,18 @@ FROM npm-deps AS rust-deps
 
 WORKDIR /cockpit-tools/src
 
-COPY Cargo.toml Cargo.lock ./
-COPY crates ./crates
-COPY src-tauri ./src-tauri
-COPY sidecars ./sidecars
-COPY scripts ./scripts
+COPY cockpit-tools/Cargo.toml cockpit-tools/Cargo.lock ./
+COPY cockpit-tools/crates ./crates
+COPY cockpit-tools/src-tauri ./src-tauri
+COPY cockpit-tools/sidecars ./sidecars
+COPY cockpit-tools/scripts ./scripts
 
 # Rust 代码 include_str! 编译期会读取这些文件。
-COPY CHANGELOG.md CHANGELOG.zh-CN.md ./
-COPY src/locales ./src/locales
+COPY cockpit-tools/CHANGELOG.md cockpit-tools/CHANGELOG.zh-CN.md ./
+COPY cockpit-tools/src/locales ./src/locales
 
 # Tauri 打包 / 图标资源可能需要。
-COPY src/assets ./src/assets
+COPY cockpit-tools/src/assets ./src/assets
 
 # 先单独拉依赖；失败会更早暴露，不会等完整 tauri build。
 RUN set -eux; \
@@ -113,24 +113,24 @@ RUN set -eux; \
 # ============================================================
 FROM rust-deps AS builder
 
-WORKDIR /cockpit-tools/src-tauri
+WORKDIR /cockpit-tools/src
 
 # 复制前端构建需要的根目录配置文件。
-COPY index.html ./
-COPY vite.config.ts ./
-COPY tsconfig.json ./
-COPY tsconfig.node.json ./
-COPY postcss.config.* ./
-COPY tailwind.config.* ./
-COPY components.json* ./
+COPY cockpit-tools/index.html ./
+COPY cockpit-tools/vite.config.ts ./
+COPY cockpit-tools/tsconfig.json ./
+COPY cockpit-tools/tsconfig.node.json ./
+COPY cockpit-tools/postcss.config.* ./
+COPY cockpit-tools/tailwind.config.* ./
+COPY cockpit-tools/components.json* ./
 
 # 复制完整前端源码和 public。
-COPY public ./public
-COPY src ./src
+COPY cockpit-tools/public ./public
+COPY cockpit-tools/src ./src
 
 # 再复制一次可能变化的发布/配置文件。
-COPY announcements.json* ./
-COPY remote-config.json* ./
+COPY cockpit-tools/announcements.json* ./
+COPY cockpit-tools/remote-config.json* ./
 
 # 确保 package 版本同步，然后最终打包。
 # 因为前面 cargo build 已经产生 target 缓存，这里通常会快很多。
@@ -170,7 +170,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /src/src-tauri/target/release/bundle/deb/*.deb /tmp/cockpit-tools.deb
+COPY --from=builder /cockpit-tools/src/src-tauri/target/release/bundle/deb/*.deb /tmp/cockpit-tools.deb
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends /tmp/cockpit-tools.deb \
@@ -210,11 +210,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /
-
 COPY docker/start-novnc.sh /usr/local/bin/start-novnc
-
-WORKDIR /cockpit-tools/src
 
 RUN chmod +x /usr/local/bin/start-novnc \
     && chown app:app /usr/local/bin/start-novnc

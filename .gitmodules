@@ -1,0 +1,3 @@
+[submodule "cockpit-tools"]
+	path = cockpit-tools
+	url = https://github.com/jlcodes99/cockpit-tools.git

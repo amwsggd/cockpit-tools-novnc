@@ -113,7 +113,7 @@ RUN set -eux; \
 # ============================================================
 FROM rust-deps AS builder
 
-WORKDIR /cockpit-tools/src
+WORKDIR /cockpit-tools/
 
 # 复制前端构建需要的根目录配置文件。
 COPY index.html ./

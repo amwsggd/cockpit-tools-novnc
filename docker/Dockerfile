@@ -101,6 +101,9 @@ COPY cockpit-tools/src/locales ./src/locales
 # Tauri 打包 / 图标资源可能需要。
 COPY cockpit-tools/src/assets ./src/assets
 
+# tauri.conf.json bundle.resources 引用的平台包数据。
+COPY cockpit-tools/platform-packages ./platform-packages
+
 # 先单独拉依赖；失败会更早暴露，不会等完整 tauri build。
 RUN set -eux; \
     cargo fetch --locked

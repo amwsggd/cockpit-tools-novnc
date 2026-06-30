@@ -1,0 +1,52 @@
+name: sync-submodule
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # 每30分钟检查
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Update submodule
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git submodule update --remote --recursive
+
+      - name: Commit if changed
+        id: sync
+        run: |
+          git add .
+          CHANGES=$(git diff --cached --name-only || true)
+          if [ -n "$CHANGES" ]; then
+            git commit -m "chore: update submodule"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            # 没有其它业务文件变更，丢弃仅涉及工作流/docker的暂存改动，保持 main 与上游一致
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Force push main
+        id: push
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: update
+    if: needs.update.outputs.pushed == 'true'
+    uses: ./.github/workflows/build.yml
+    secrets: inherit

@@ -2,7 +2,7 @@ name: sync-submodule
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # 每30分钟检查
+    - cron: "23 */2 * * *"   # 每2小时检查
   workflow_dispatch:
 
 permissions:

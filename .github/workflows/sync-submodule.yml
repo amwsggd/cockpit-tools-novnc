@@ -22,15 +22,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
-          fetch-depth: 0
+          submodules: false
+          fetch-depth: 1
 
       - name: Update submodule
         run: |
+          set -e
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git submodule update --remote --recursive
+          git submodule sync --recursive
+          git submodule update --init --recursive --depth 1
 
       - name: Commit if changed
         id: sync

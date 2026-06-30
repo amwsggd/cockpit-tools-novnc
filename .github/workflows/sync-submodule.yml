@@ -16,6 +16,9 @@ jobs:
     permissions:
       contents: write
 
+    outputs:
+      pushed: ${{ steps.push.outputs.pushed }}
+
     steps:
       - uses: actions/checkout@v4
         with:

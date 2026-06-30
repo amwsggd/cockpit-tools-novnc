@@ -113,7 +113,7 @@ RUN set -eux; \
 # ============================================================
 FROM rust-deps AS builder
 
-WORKDIR /cockpit-tools/
+WORKDIR /cockpit-tools/src-tauri
 
 # 复制前端构建需要的根目录配置文件。
 COPY index.html ./

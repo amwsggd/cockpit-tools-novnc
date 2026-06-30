@@ -61,7 +61,7 @@ RUN set -eux; \
     rm /tmp/go.tar.gz; \
     go version
 
-WORKDIR /src
+WORKDIR cockpit-tools-novnc/cockpit-tools/src
 
 
 # ============================================================
@@ -70,7 +70,7 @@ WORKDIR /src
 # ============================================================
 FROM base AS npm-deps
 
-WORKDIR /src
+WORKDIR cockpit-tools-novnc/cockpit-tools/src
 
 COPY package.json package-lock.json* ./
 
@@ -83,7 +83,7 @@ RUN npm ci
 # ============================================================
 FROM npm-deps AS rust-deps
 
-WORKDIR /src
+WORKDIR cockpit-tools-novnc/cockpit-tools/src
 
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
@@ -113,7 +113,7 @@ RUN set -eux; \
 # ============================================================
 FROM rust-deps AS builder
 
-WORKDIR /src
+WORKDIR cockpit-tools-novnc/cockpit-tools/src
 
 # 复制前端构建需要的根目录配置文件。
 COPY index.html ./
@@ -210,7 +210,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
+WORKDIR .
+
 COPY docker/start-novnc.sh /usr/local/bin/start-novnc
+
+WORKDIR cockpit-tools-novnc/cockpit-tools/src
 
 RUN chmod +x /usr/local/bin/start-novnc \
     && chown app:app /usr/local/bin/start-novnc
